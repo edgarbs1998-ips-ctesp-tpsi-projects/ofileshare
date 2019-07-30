@@ -1,0 +1,7 @@
+ALTER TABLE file_tag
+	ADD CONSTRAINT fk_fta_fil_id
+		FOREIGN KEY (fta_fil_id) REFERENCES file (fil_id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT,
+	ADD CONSTRAINT fk_fta_tag_id
+		FOREIGN KEY (fta_tag_id) REFERENCES tag (tag_id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT;

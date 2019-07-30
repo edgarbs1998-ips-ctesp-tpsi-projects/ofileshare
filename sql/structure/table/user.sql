@@ -1,0 +1,20 @@
+CREATE TABLE user (
+	usr_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+	usr_ule_level INT(11) UNSIGNED NOT NULL DEFAULT 1,
+	usr_username VARCHAR(64) NOT NULL,
+	usr_title VARCHAR(12) NOT NULL,
+	usr_firstname VARCHAR(255) NOT NULL,
+	usr_lastname VARCHAR(255) NOT NULL,
+	usr_password CHAR(60) NOT NULL,
+	usr_email VARCHAR(255) NOT NULL,
+	usr_identifier CHAR(32) NOT NULL,
+	usr_creation_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	usr_creation_ip VARBINARY(16) NOT NULL,
+	usr_password_change_date DATETIME NULL DEFAULT NULL,
+	usr_password_change_ip VARBINARY(16) NULL DEFAULT NULL,
+	usr_password_reset_hash CHAR(32) NULL DEFAULT NULL,
+	PRIMARY KEY (usr_id),
+	UNIQUE INDEX usr_username (usr_username),
+	UNIQUE INDEX usr_email (usr_email),
+	INDEX usr_password_reset_hash (usr_password_reset_hash)
+);

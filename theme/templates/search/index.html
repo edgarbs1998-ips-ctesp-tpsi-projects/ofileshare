@@ -1,0 +1,42 @@
+<?php
+
+// Load params
+$url = PAGE_URL;
+$urlParts = explode ( "/", $url );
+array_shift ( $urlParts );
+$subCategory = trim ( current ( $urlParts ) );
+$searchTerm = trim ( $_GET [ "t" ] );
+if ( strlen ( $searchTerm ) == 0 ) {
+	Functions::redirect ( WEB_ROOT );
+}
+$pageTitle = "Searching " . str_replace ( array ( "\"", "'" ), "", $searchTerm );
+$filterUploadedDateRange = isset ( $_GET [ "filterUploadedDateRange" ] ) ? $_GET [ "filterUploadedDateRange" ] : "";
+
+// Page settings
+define ( "PAGE_NAME", $pageTitle );
+define ( "PAGE_DESCRIPTION", $pageTitle );
+define ( "PAGE_KEYWORDS", "search, cloud, file, hosting, sharing, upload, storage, site, website" );
+define ( "SELECTED_NAVIGATION_LINK", "browse" );
+
+// Include header
+require_once ( THEME_TEMPLATES_PATH . "/partial/header.inc.php" );
+?>
+
+<script>
+$( document ).ready(function() {
+	loadBrowsePageRecentImages("<?php echo str_replace ( array( "\"", "'", "\\" ), "", $searchTerm ); ?>", 1, 0, "", {"filterUploadedDateRange": '<?php echo $filterUploadedDateRange; ?>'});
+	
+	$('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+		fixImageBrowseHeights('#browse-images');
+	});
+});
+</script>
+
+<div id="browse-images" class="layer">
+	<div class="ajax-loading-image"><!-- --></div>
+</div>
+
+<?php
+// Include footer
+require_once ( THEME_TEMPLATES_PATH . "/partial/footer.inc.php" );
+?>

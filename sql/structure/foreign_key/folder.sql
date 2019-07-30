@@ -1,0 +1,4 @@
+ALTER TABLE folder
+	ADD CONSTRAINT fk_fol_usr_id
+		FOREIGN KEY (fol_usr_id) REFERENCES user (usr_id)
+		ON UPDATE RESTRICT ON DELETE RESTRICT;

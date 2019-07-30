@@ -1,0 +1,22 @@
+CREATE TABLE file (
+	fil_id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+	fil_fpe_id BIGINT(20) UNSIGNED NOT NULL DEFAULT 1,
+	fil_fol_id BIGINT(20) UNSIGNED NOT NULL,
+	fil_shorturl CHAR(16) NOT NULL DEFAULT "TEMP",
+	fil_name VARCHAR(260) NOT NULL,
+	fil_size BIGINT(20) UNSIGNED NOT NULL,
+	fil_type VARCHAR(140) NOT NULL,
+	fil_extension VARCHAR(10) NOT NULL,
+	fil_path VARCHAR(260) NOT NULL,
+	fil_upload_ip VARBINARY(16) NOT NULL,
+	fil_upload_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	fil_trash DATETIME NULL DEFAULT NULL,
+	fil_hash CHAR(32) NULL DEFAULT NULL,
+	fil_delete_hash CHAR(32) NOT NULL,
+	fil_unique_hash CHAR(64) NULL DEFAULT NULL,
+	PRIMARY KEY (fil_id),
+	UNIQUE INDEX fil_delete_hash (fil_delete_hash),
+	UNIQUE INDEX fil_unique_hash (fil_unique_hash),
+	INDEX fil_fol_id (fil_fol_id),
+	INDEX fil_trash (fil_trash)
+);

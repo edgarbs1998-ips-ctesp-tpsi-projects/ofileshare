@@ -1,0 +1,34 @@
+<?php
+
+// Handle screen messages
+if ( isset ( $_GET [ "s" ] ) ) {
+    $s = $_GET [ "s" ];
+    $s = Validate::prepareOutput ( $s );
+    Notification::setSuccess ( $s );
+}
+
+// Page settings
+define ( "PAGE_NAME", "Account Home" );
+define ( "PAGE_DESCRIPTION", "Your account filemanager" );
+define ( "PAGE_KEYWORDS", "filemanager, home, account, user, cloud, file, hosting, sharing, upload, storage, site, website" );
+
+// Redirect if user not logged in and not requesting a file
+if ( !$user->isLogged ( ) /*&& !$file*/ ) {
+	Functions::redirect ( WEB_ROOT . "/login.html" );
+}
+
+// Include header
+require_once ( THEME_TEMPLATES_PATH . "/partial/header.inc.php" );
+?>
+
+<?php if ( !defined ( "_INT_FILE_ID" ) ) { ?>
+<script>
+$( document ).ready ( function ( ) {
+	loadImages ( "-1" );
+} );
+</script>
+<?php } ?>
+
+<?php
+// Include footer
+require_once ( THEME_TEMPLATES_PATH . "/partial/footer.inc.php" );

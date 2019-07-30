@@ -1,0 +1,327 @@
+<?php
+// Require login
+$user->requireUser ( WEB_ROOT . "/login.html" );
+
+// Page settings
+define ( "PAGE_NAME", "Account Details" );
+define ( "PAGE_DESCRIPTION", "Account details" );
+define ( "PAGE_KEYWORDS", "details, edit, account, user, cloud, file, hosting, sharing, upload, storage, site, website" );
+
+// Get account stats
+$totalFreeSpace     = User::getAvailableFileStorage ( $user->id );
+$totalActiveFiles   = File::getTotalActiveFilesByUser ( $user->id );
+$totalTrashedFiles  = File::getTotalTrashedFilesByUser ( $user->id );
+
+// Update user
+if ( isset ( $_POST [ "submitme" ] ) ) {
+    // Form validation
+    $title                  = trim ( filter_input ( INPUT_POST, "title", FILTER_SANITIZE_STRING ) );
+    $firstname              = trim ( filter_input ( INPUT_POST, "firstname", FILTER_SANITIZE_STRING ) );
+    $lastname               = trim ( filter_input ( INPUT_POST, "lastname", FILTER_SANITIZE_STRING ) );
+    $emailAddress           = strtolower ( trim ( filter_input ( INPUT_POST, "emailAddress", FILTER_SANITIZE_EMAIL ) ) );
+    $password               = trim ( filter_input ( INPUT_POST, "password" ) );
+    $passwordConfirm        = trim ( filter_input ( INPUT_POST, "passwordConfirm" ) );
+
+    if ( !strlen ( $title ) ) {
+        Notification::setError ( "Please enter your title" );
+    }
+
+    if ( !strlen ( $firstname ) ) {
+        Notification::setError ( "Please enter your first name" );
+    }
+
+    if ( !strlen ( $lastname ) ) {
+        Notification::setError ( "Please enter your last name" );
+    }
+    
+    if ( !strlen ( $emailAddress ) ) {
+        Notification::setError ( "Please enter your email address" );
+    }
+    if ( $emailAddress != $user->usr_email ) {
+        if ( ( $result = Validate::validateEmail ( $emailAddress ) ) !== true ) {
+            Notification::setError ( $result );
+        } elseif ( User::loadUserByEmailAddress ( $emailAddress ) ) {
+            Notification::setError ( "Email address is already in use" );
+        }
+    }
+
+    if ( strlen ( $password ) ) {
+        if ( strcmp ( $password, $passwordConfirm ) ) {
+            Notification::setError ( "Your password confirmation does not match" );
+        } elseif ( ( $result = Validate::validatePassword ( $passwordConfirm ) ) !== true ) {
+            Notification::setError ( $result );
+        }
+    }
+
+    // Update the account
+    if ( !Notification::hasErrors ( ) ) {
+        $userEmail = $user->usr_email;
+        
+        $db = Database::getInstance ( );
+
+        try {
+            $db->query ( "CALL sp_user_update ( :user_id,
+                                                :title,
+                                                :firstname,
+                                                :lastname,
+                                                :email )",
+                        array (
+                            "user_id"       => $user->id,
+                            "title"         => $title,
+                            "firstname"     => $firstname,
+                            "lastname"      => $lastname,
+                            "email"         => $emailAddress,
+                        )
+            );
+
+            if ( strlen ( $password ) ) {
+                $db->query ( "UPDATE user SET usr_password = :password WHERE usr_id = :user_id", array ( "password" => password_hash ( $password, PASSWORD_BCRYPT  ), "user_id" => $user->id ) );
+            }
+
+            $user->updateUserData ( );
+
+            Notification::setSuccess ( "Account details successfully updated" );
+        } catch ( APPException $ex ) {
+            $ex->log ( );
+            Notification::setError ( "There was a problem creating your account, please try again later" );
+        }
+
+        if ( !Notification::hasErrors ( ) ) {
+            if ( strlen ( $password ) ) {
+                $subject = "Password changed for account on " . CONFIG_SITE_NAME;
+
+                $replacements = array(
+                    "TITLE"         => $user->title,
+                    "FIRST_NAME"    => $user->firstname,
+                    "LAST_NAME"     => $user->lastname,
+                    "SITE_NAME"     => CONFIG_SITE_NAME,
+                    "WEB_ROOT"      => WEB_ROOT,
+                    "USERNAME"      => $user->username,
+                );
+                $message = "Dear [[[TITLE]]]. [[[FIRST_NAME]]] [[[LAST_NAME]]],<br/><br/>";
+                $message .= "This is a courtesy email notifying you that your account password on [[[SITE_NAME]]] has been changed.<br/><br/>";
+                $message .= "If you didn't change your password, please contact us immediately. Otherwise just ignore this email.<br/><br/>";
+                $message .= "<strong>Url:</strong> <a href='[[[WEB_ROOT]]]'>[[[WEB_ROOT]]]</a><br/>";
+                $message .= "<strong>Username:</strong> [[[USERNAME]]]<br/><br/>";
+                $message .= "Feel free to contact us if you need any support with your account.<br/><br/>";
+                $message .= "Regards,<br/>";
+                $message .= "[[[SITE_NAME]]] Admin";
+                $htmlMessage = Functions::stringReplace ( $message, $replacements );
+
+                try {
+                    Functions::sendEmail ( $emailAddress, $subject, $htmlMessage );
+                } catch ( APPException $ex ) {
+                    $ex->log ( );
+                }
+            }
+
+            if ( $emailAddress != $userEmail ) {
+                $subject = "Email changed for account on " . CONFIG_SITE_NAME;
+
+                $replacements = array(
+                    "TITLE"         => $user->title,
+                    "FIRST_NAME"    => $user->firstname,
+                    "LAST_NAME"     => $user->lastname,
+                    "SITE_NAME"     => CONFIG_SITE_NAME,
+                    "WEB_ROOT"      => WEB_ROOT,
+                    "USERNAME"      => $user->username,
+                    "NEW_EMAIL"     => $emailAddress,
+                );
+                $message = "Dear [[[TITLE]]]. [[[FIRST_NAME]]] [[[LAST_NAME]]],<br/><br/>";
+                $message .= "This is a courtesy email notifying you that your account email address on [[[SITE_NAME]]] has been changed to [[[NEW_EMAIL]]].<br/><br/>";
+                $message .= "If you didn't change your email address, please contact us immediately. Otherwise just ignore this email.<br/><br/>";
+                $message .= "<strong>Url:</strong> <a href='[[[WEB_ROOT]]]'>[[[WEB_ROOT]]]</a><br/>";
+                $message .= "<strong>Username:</strong> [[[USERNAME]]]<br/>";
+                $message .= "<strong>New Email:</strong> [[[NEW_EMAIL]]]<br/><br/>";
+                $message .= "Feel free to contact us if you need any support with your account.<br/><br/>";
+                $message .= "Regards,<br/>";
+                $message .= "[[[SITE_NAME]]] Admin";
+                $htmlMessage = Functions::stringReplace ( $message, $replacements );
+
+                try {
+                    Functions::sendEmail ( $emailAddress, $subject, $htmlMessage );
+                } catch ( APPException $ex ) {
+                    $ex->log ( );
+                }
+            }
+        }
+    }
+}
+else
+{
+    $title          = $user->title;
+    $firstname      = $user->firstname;
+    $lastname       = $user->lastname;
+    $emailAddress   = $user->usr_email;
+}
+
+// Include header
+require_once ( THEME_TEMPLATES_PATH . "/partial/header.inc.php" );
+
+// File manager javascript
+require_once ( THEME_TEMPLATES_PATH . "/partial/account_home_javascript.inc.php" );
+
+if ( Notification::hasSuccess ( ) ) {
+    echo TemplateFunctions::outputSuccess ( );
+} elseif ( Notification::hasErrors ( ) ) {
+    echo TemplateFunctions::outputErrors ( );
+}
+?>
+
+<div class="main-content layer base-slide">
+    <ol class="breadcrumb bc-3">
+        <li>
+            <a href="<?php echo WEB_ROOT; ?>/index.html"><i class="entypo-home"></i>Home</a>
+        </li>
+        <li class="active">
+            <strong>Account Details</strong>
+        </li>
+    </ol>
+
+    <div class="row">
+        <div class="col-sm-3 responsive-column">
+
+            <div class="tile-stats tile-red">
+                <div class="icon"><i class="entypo-drive"></i></div>
+                <?php if ( $totalFreeSpace !== null ) { ?>
+                    <div data-delay="0" data-duration="1500" data-decimals="2" data-postfix="&nbsp;<?php echo Validate::prepareOutput ( Functions::formatSize ( $totalFreeSpace, "ext" ) ); ?>" data-end="<?php echo Validate::prepareOutput ( Functions::formatSize ( $totalFreeSpace, "size" ) ); ?>" data-start="0" class="num">-</div>
+                <?php } else { ?>
+                    <div class="num">Unlimited</div>
+                <?php } ?>
+                <h3>Available Storage</h3>
+            </div>
+
+        </div>
+
+        <div class="col-sm-3 responsive-column">
+
+            <div class="tile-stats tile-green">
+                <div class="icon"><i class="entypo-upload"></i></div>
+                <div data-delay="0" data-duration="1500" data-decimals="2" data-postfix="&nbsp;<?php echo Validate::prepareOutput ( Functions::formatSize ( $totalActiveFileSize, "ext" ) ); ?>" data-end="<?php echo Validate::prepareOutput ( Functions::formatSize ( $totalActiveFileSize, "size" ) ); ?>" data-start="0" class="num">-</div>
+                <h3>Used Storage</h3>
+            </div>
+
+        </div>
+
+        <div class="col-sm-3 responsive-column">
+
+            <div class="tile-stats tile-aqua">
+                <div class="icon"><i class="entypo-doc-text-inv"></i></div>
+                <div data-delay="0" data-duration="1500" data-end="<?php echo Validate::prepareOutput ( $totalActiveFiles ); ?>" data-start="0" class="num">-</div>
+                <h3>Active Files</h3>
+            </div>
+
+        </div>
+
+        <div class="col-sm-3 responsive-column">
+
+            <div class="tile-stats tile-blue">
+                <div class="icon"><i class="entypo-cup"></i></div>
+                <div data-delay="0" data-duration="1500" data-end="<?php echo Validate::prepareOutput ( $totalTrashedFiles ); ?>" data-start="0" class="num">-</div>
+                <h3>Trashed Files</h3>
+            </div>
+
+        </div>
+    </div>
+    <br/>
+
+    <form class="form-horizontal form-groups-bordered" role="form" action="<?php echo WEB_ROOT; ?>/account_edit.html" method="POST" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-md-12">
+
+                <div data-collapsed="0" class="panel panel-primary">
+
+                    <div class="panel-heading">
+                        <div class="panel-title">Keep your account details up to date below.</div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label" for="title">Title</label>
+                            <div class="col-sm-5">
+                                <select id="title" name="title" class="form-control" autofocus="autofocus" tabindex="1" data-content="Your title" data-placement="right" data-trigger="hover focus" data-container="body" data-toggle="popover">
+									<option value="Mr" <?php echo isset ( $title ) ? ( $title == "Mr" ) ? "selected" : "" : ""; ?>>Mr</option>
+									<option value="Ms" <?php echo isset ( $title ) ? ( $title == "Ms" ) ? "selected" : "" : ""; ?>>Ms</option>
+									<option value="Mrs" <?php echo isset ( $title ) ? ( $title == "Mrs" ) ? "selected" : "" : ""; ?>>Mrs</option>
+									<option value="Miss" <?php echo isset ( $title ) ? ( $title == "Miss" ) ? "selected" : "" : ""; ?>>Miss</option>
+									<option value="Dr" <?php echo isset ( $title ) ? ( $title == "Dr" ) ? "selected" : "" : ""; ?>>Dr</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label" for="firstname">Firstname</label>
+                            <div class="col-sm-5">
+                                <input id="firstname" name="firstname" type="text" tabindex="2" value="<?php echo isset ( $firstname ) ? Validate::prepareOutput ( $firstname ) : ""; ?>" class="form-control" data-content="Your firstname" data-placement="right" data-trigger="hover focus" data-container="body" data-toggle="popover" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label" for="lastname">Lastname</label>
+                            <div class="col-sm-5">
+                                <input id="lastname" name="lastname" type="text" tabindex="3" value="<?php echo isset ( $lastname ) ? Validate::prepareOutput ( $lastname ) : ""; ?>" class="form-control" data-content="Your lastname" data-placement="right" data-trigger="hover focus" data-container="body" data-toggle="popover" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label" for="emailAddress">Email Address</label>
+                            <div class="col-sm-5">
+                                <input id="emailAddress" name="emailAddress" type="text" tabindex="4" value="<?php echo isset ( $emailAddress ) ? Validate::prepareOutput ( $emailAddress ) : ""; ?>" class="form-control" data-content="Your new email address" data-placement="right" data-trigger="hover focus" data-container="body" data-toggle="popover" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <br/>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div data-collapsed="0" class="panel panel-primary">
+                    <div class="panel-heading">
+                        <div class="panel-title">Change password.</div>
+                    </div>
+
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label" for="password">Change Password</label>
+                            <div class="col-sm-5">
+                                <input id="password" name="password" type="password" tabindex="5" value="" class="form-control" data-content="Optional. A new account password, leave this blank to keep your existing." data-placement="right" data-trigger="hover focus" data-container="body" data-toggle="popover">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-3 control-label" for="passwordConfirm">Confirm Password</label>
+                            <div class="col-sm-5">
+                                <input id="passwordConfirm" name="passwordConfirm" type="password" tabindex="6" value="" class="form-control" data-content="Optional. Confirm the password entered above, leave this blank to keep your existing." data-placement="right" data-trigger="hover focus" data-container="body" data-toggle="popover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <br/>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div data-collapsed="0" class="panel panel-primary">
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <div class="col-sm-offset-3 col-sm-5">
+                                <input type="hidden" value="1" name="submitme" />
+                                <button class="btn btn-info" type="submit">Update Account <i class="entypo-check"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<?php
+// Include footer
+require_once ( THEME_TEMPLATES_PATH . "/partial/footer.inc.php" );
+?>

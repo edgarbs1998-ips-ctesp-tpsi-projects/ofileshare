@@ -1,0 +1,77 @@
+<?php
+// Check if account registration is enabled
+if ( !CONFIG_REGISTRATION_ENABLE ) {
+    Functions::redirect ( WEB_ROOT );
+}
+
+// Page settings
+define ( "PAGE_NAME", "Registration Completed" );
+define ( "PAGE_DESCRIPTION", "Your registration has been completed" );
+define ( "PAGE_KEYWORDS", "completed, success, register, account, user, cloud, file, hosting, sharing, upload, storage, site, website" );
+define ( "HTML_ELEMENT_CLASS", "login-page-wrapper" );
+
+if ( isset ( $_GET [ "emailError" ] ) ) {
+    Notification::setError ( "Email with account details could not be sent" );
+}
+
+// Include header top
+require_once ( THEME_TEMPLATES_PATH . "/partial/header_top.inc.php" );
+?>
+
+<body class="page-body login-page login-form-fall register-page">
+    <div class="login-container">
+        <div class="login-header login-caret">
+            <div class="login-content">
+                <a href="<?php echo WEB_ROOT; ?>/index.html" class="logo">
+                    <img src="<?php echo THEME_IMAGE_PATH; ?>/logo/logo.png" alt="<?php echo CONFIG_SITE_NAME; ?>" />
+                </a>
+            </div>
+        </div>
+        <div class="login-progressbar">
+            <div></div>
+        </div>
+        <div class="login-form">
+            <div class="login-content">
+				<div class="login-main-box">
+                    <ul class="alert alert-success">
+                        <li class="no-side-margin">
+                            <i class="fa fa-check-square margin-right-20"></i> Account created
+                        </li>
+                    </ul>
+                    <?php
+					if ( Notification::hasErrors ( ) ) {
+                        echo str_replace ( "pageErrorClass", "alert alert-danger", Notification::outputErrors ( ) );
+                    } else { ?>
+                        <p class="description">
+                            We've sent an email to your registered email address with your account details.
+                            Please check your spam filters to ensure emails from this site get through.
+                        </p>
+                        <p class="description">Emails from this site are sent from
+                            <a href="mailto:<?php echo CONFIG_EMAIL_FROM_DEFAULT; ?>"><?php echo CONFIG_EMAIL_FROM_DEFAULT; ?></a>
+                        </p>
+                    <?php } ?>
+
+                    <div>&nbsp;</div>
+                    <div class="login-bottom-links">
+						<a href="<?php echo WEB_ROOT; ?>/login.html" class="link"><i class="entypo-lock"></i> Back to Login Form</a>
+					</div>
+				</div>
+			</div>
+			
+            <div class="footer-login-links">
+                Copyright &copy; <?php echo date ( "Y" ); ?> - <a href="<?php echo WEB_ROOT; ?>/index.html"><?php echo CONFIG_SITE_NAME; ?></a>
+			</div>
+        </div>
+    </div>
+
+    <!-- bottom scripts -->
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/gsap/main-gsap.js"></script>
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/bootstrap.js"></script>
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/joinable.js"></script>
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/resizeable.js"></script>
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/cloudable-api.js"></script>
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/jquery.validate.min.js"></script>
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/cloudable-login.js"></script>
+    <script type="text/javascript" src="<?php echo THEME_JS_PATH; ?>/custom.js"></script>
+</body>
+</html>
